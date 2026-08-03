@@ -21,6 +21,8 @@ bootbank rollback.
 - One and multiple TCP streams.
 - 60-second and longer sustained receive/transmit load.
 - VM power cycle and host reboot.
+- Verify RX immediately after reboot; if it does not advance, record the
+  counters before and after one `vmnic128` down/up rearm cycle.
 - Link cable removal/reconnection.
 - Uplink down/up recovery.
 - Management migration from USB to RP1 and back.

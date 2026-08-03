@@ -1,16 +1,16 @@
 # Performance checkpoint
 
-## v0.206 results
+## v0.211 results
 
 Tests used a Raspberry Pi 5 running ESXi-Arm 8.0U3c build 24449057 and a wired
 external peer on the same LAN.
 
 | Path and traffic profile | Observed result |
 |---|---:|
-| ESXi/VM TCP transmit, MSS 1460 | 178 Mbit/s |
-| ESXi/VM TCP receive, MSS 1460 | 221 Mbit/s |
-| Receive with jumbo frames, 60 seconds | 852 Mbit/s average |
-| Receive with jumbo frames | 922 Mbit/s peak |
+| VM TCP transmit, MSS 1460, 5 seconds | 179 Mbit/s |
+| VM TCP receive, MSS 1460, 5 seconds | 263 Mbit/s |
+| VM TCP transmit with jumbo frames, 5 seconds | 332 Mbit/s |
+| VM TCP receive with jumbo frames, 5 seconds | 721 Mbit/s |
 
 Standard-MTU performance is substantially lower than line rate, while the
 jumbo receive path demonstrates that the MAC, PHY and underlying DMA path can

@@ -13,7 +13,7 @@ Raspberry Pi 5 Ethernet interface.
 
 ## Status
 
-Version **v0.206** is a boot-tested development checkpoint for:
+Version **v0.211** is a boot-tested development checkpoint for:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -58,7 +58,10 @@ Raspberry Pi Foundation. Do not use it on production systems.
 - RX uses a dedicated polling world at a 500 microsecond interval.
 - The shared RP1 interrupt **261 is intentionally never registered** because it
   is shared with other RP1 functions, including USB controllers.
-- v0.206 uses a 32-entry RX ring and TX batch size 8.
+- v0.211 uses a 32-entry RX ring and TX batch size 8.
+- On the validation host, the first boot required one `vmnic128` down/up cycle
+  to rearm RX. Keep USB management available until this lifecycle issue is
+  resolved.
 - The VIB is unsigned and has `CommunitySupported` acceptance.
 - Secure Boot must be disabled.
 - Installation/removal requires maintenance mode and reboot.
@@ -73,10 +76,10 @@ with a wired external peer. They are checkpoints, not guarantees:
 
 | Test | Result |
 |---|---:|
-| TCP TX, MSS 1460 | 178 Mbit/s |
-| TCP RX, MSS 1460 | 221 Mbit/s |
-| Jumbo RX, 60 seconds | 852 Mbit/s average |
-| Jumbo RX peak | 922 Mbit/s |
+| TCP TX, MSS 1460 | 179 Mbit/s |
+| TCP RX, MSS 1460 | 263 Mbit/s |
+| Jumbo TX | 332 Mbit/s |
+| Jumbo RX | 721 Mbit/s |
 | Jumbo ICMP payload 8972 | passed |
 
 The slower standard-MTU path remains an area for optimization. See
@@ -86,8 +89,8 @@ The slower standard-MTU path remains an area for optimization. See
 
 Use the latest GitHub Release:
 
-- `rp1gem-0.0.206-1-offline-bundle.zip` — recommended offline depot;
-- `rp1gem-0.0.206-1-community.vib` — standalone VIB;
+- `rp1gem-0.0.211-1-offline-bundle.zip` — recommended offline depot;
+- `rp1gem-0.0.211-1-community.vib` — standalone VIB;
 - `SHA256SUMS` — release checksums.
 
 ## Installation
@@ -116,7 +119,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -124,7 +127,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot
@@ -141,7 +144,7 @@ compatible VMware/NDDK-derived toolchain and packaging requires VMware's
 not redistributed here.
 
 The checked-in source comment was refreshed for publication, but the release
-VIB contains the exact host-tested v0.206 binary.
+VIB contains the exact host-tested v0.211 binary.
 
 ## Testing and contributions
 
@@ -163,7 +166,7 @@ This project is distributed under the [MIT License](LICENSE).
 
 ### Статус и совместимость
 
-Версия **v0.206** проверена загрузкой на следующей конфигурации:
+Версия **v0.211** проверена загрузкой на следующей конфигурации:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -208,7 +211,10 @@ passthrough. ESXi регистрирует интерфейс как физич�
 - RX обслуживается polling world с интервалом 500 мкс.
 - Общий IRQ RP1 **261 намеренно не регистрируется**, поскольку он также
   используется другими функциями RP1, включая USB-контроллеры.
-- В v0.206 используется RX-кольцо на 32 элемента и TX batch 8.
+- В v0.211 используется RX-кольцо на 32 элемента и TX batch 8.
+- На тестовом хосте после первой загрузки потребовался один цикл
+  `vmnic128 down/up` для повторного запуска RX. До исправления lifecycle
+  сохраняйте management через USB.
 - VIB не подписан и имеет уровень `CommunitySupported`.
 - Secure Boot должен быть отключён.
 - Установка и удаление требуют maintenance mode и перезагрузки.
@@ -219,10 +225,10 @@ passthrough. ESXi регистрирует интерфейс как физич�
 
 | Тест | Результат |
 |---|---:|
-| TCP TX, MSS 1460 | 178 Мбит/с |
-| TCP RX, MSS 1460 | 221 Мбит/с |
-| Jumbo RX, 60 секунд | 852 Мбит/с в среднем |
-| Пиковый Jumbo RX | 922 Мбит/с |
+| TCP TX, MSS 1460 | 179 Мбит/с |
+| TCP RX, MSS 1460 | 263 Мбит/с |
+| Jumbo TX | 332 Мбит/с |
+| Jumbo RX | 721 Мбит/с |
 | ICMP jumbo payload 8972 | успешно |
 
 Путь с обычным MTU ещё требует оптимизации. Подробности приведены в
@@ -232,8 +238,8 @@ passthrough. ESXi регистрирует интерфейс как физич�
 
 Используйте последний раздел [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases):
 
-- `rp1gem-0.0.206-1-offline-bundle.zip` — рекомендуемый offline depot;
-- `rp1gem-0.0.206-1-community.vib` — отдельный VIB;
+- `rp1gem-0.0.211-1-offline-bundle.zip` — рекомендуемый offline depot;
+- `rp1gem-0.0.211-1-community.vib` — отдельный VIB;
 - `SHA256SUMS` — контрольные суммы.
 
 ### Установка
@@ -258,7 +264,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -266,7 +272,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot

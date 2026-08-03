@@ -10,7 +10,7 @@
 
 ## Статус и совместимость
 
-Версия **v0.206** проверена загрузкой на следующей конфигурации:
+Версия **v0.211** проверена загрузкой на следующей конфигурации:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -55,7 +55,10 @@ passthrough. ESXi регистрирует интерфейс как физич�
 - RX обслуживается polling world с интервалом 500 мкс.
 - Общий IRQ RP1 **261 намеренно не регистрируется**, поскольку он также
   используется другими функциями RP1, включая USB-контроллеры.
-- В v0.206 используется RX-кольцо на 32 элемента и TX batch 8.
+- В v0.211 используется RX-кольцо на 32 элемента и TX batch 8.
+- На тестовом хосте после первой загрузки потребовался один цикл
+  `vmnic128 down/up` для повторного запуска RX. До исправления lifecycle
+  сохраняйте management через USB.
 - VIB не подписан и имеет уровень `CommunitySupported`.
 - Secure Boot должен быть отключён.
 - Установка и удаление требуют maintenance mode и перезагрузки.
@@ -65,10 +68,10 @@ passthrough. ESXi регистрирует интерфейс как физич�
 
 | Тест | Результат |
 |---|---:|
-| TCP TX, MSS 1460 | 178 Мбит/с |
-| TCP RX, MSS 1460 | 221 Мбит/с |
-| Jumbo RX, 60 секунд | 852 Мбит/с в среднем |
-| Пиковый Jumbo RX | 922 Мбит/с |
+| TCP TX, MSS 1460 | 179 Мбит/с |
+| TCP RX, MSS 1460 | 263 Мбит/с |
+| Jumbo TX | 332 Мбит/с |
+| Jumbo RX | 721 Мбит/с |
 | ICMP jumbo payload 8972 | успешно |
 
 Путь с обычным MTU ещё требует оптимизации. Подробности приведены в
@@ -78,8 +81,8 @@ passthrough. ESXi регистрирует интерфейс как физич�
 
 Используйте последний раздел [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases):
 
-- `rp1gem-0.0.206-1-offline-bundle.zip` — рекомендуемый offline depot;
-- `rp1gem-0.0.206-1-community.vib` — отдельный VIB;
+- `rp1gem-0.0.211-1-offline-bundle.zip` — рекомендуемый offline depot;
+- `rp1gem-0.0.211-1-community.vib` — отдельный VIB;
 - `SHA256SUMS` — контрольные суммы.
 
 ## Установка
@@ -104,7 +107,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -112,7 +115,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot

@@ -1,9 +1,11 @@
 /*
- * Native VMkernel network driver for the Raspberry Pi 5 RP1
- * Cadence GEM controller, exposed by UEFI as ACPI RPI0001.
+ * Read-only MMIO reachability probe for RP1 exposed as ACPI RPI0001.
  *
- * The attached Ethernet PHY is a Broadcom BCM54213PE. RX is intentionally
- * polling-based: the shared RP1 interrupt 261 is never registered.
+ * The attach callback maps ACPI memory resource 0, reads a small set of
+ * read-only Cadence GEM identification/configuration registers, logs them,
+ * and immediately unmaps it.
+ * It performs no MMIO writes, DMA allocation, interrupt registration, PHY
+ * access, or network-uplink registration.
  */
 
 #include <stdint.h>
@@ -1345,10 +1347,11 @@ struct rp1gem_uplink_registration {
 };
 
 struct rp1gem_uplink_device_info {
-    uint64_t size_and_revision;
-    uint64_t flags;
-    uint8_t mirror[48];
+    uint8_t modes[48];
 };
+
+_Static_assert(sizeof(struct rp1gem_uplink_device_info) == 48,
+               "unexpected uplink device-info ABI size");
 
 /*
  * Layout reconstructed from nativegenet_startDevice.  The VMkernel uplink
@@ -2657,11 +2660,12 @@ rp1gem_register_uplink_skeleton(vmk_Device parent)
     rp1gem_uplink_registration.ops[11] = 0;
 
     memset(&rp1gem_uplink_device_info, 0, sizeof(rp1gem_uplink_device_info));
-    rp1gem_uplink_device_info.size_and_revision =
-        1000U | ((uint64_t)2U << 32);
-    rp1gem_uplink_device_info.flags = (uint64_t)4U << 32;
-    memcpy(rp1gem_uplink_device_info.mirror, rp1gem_advertised_modes,
-           sizeof(rp1gem_advertised_modes));
+    /*
+     * Host Client consumes this legacy table as consecutive 12-byte mode
+     * records.  Keep it byte-identical to the capability-39 mode list.
+     */
+    memcpy(rp1gem_uplink_device_info.modes,
+           rp1gem_advertised_modes, sizeof(rp1gem_advertised_modes));
 
     memset(&rp1gem_uplink_shared_data, 0, sizeof(rp1gem_uplink_shared_data));
     rp1gem_uplink_shared_data.state = 1;
@@ -2678,7 +2682,7 @@ rp1gem_register_uplink_skeleton(vmk_Device parent)
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.driver_name,
                              "RP1_GEM");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.driver_version,
-                             "0.0.206");
+                             "0.0.211");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.firmware_version,
                              "NA");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.implementation,
@@ -4225,7 +4229,7 @@ static const char __vmk_nsRequiredInfo_str[] =
 
 __attribute__((section(".vmkmodinfo"), used, aligned(8)))
 static const char __vmk_versionInfo_str[] =
-    "version=0.0.206-1rp1gem.803.0.55.24449057";
+    "version=0.0.211-1rp1gem.803.0.55.24449057";
 
 __attribute__((section(".vmkmodinfo"), used, aligned(8)))
 static const char __vmk_buildTypeInfo_str[] = "buildType=release";
