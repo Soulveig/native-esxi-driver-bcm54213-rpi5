@@ -18,6 +18,17 @@
 - PHY BCM54213PE;
 - Ethernet 1 Гбит/с и MTU до 9000.
 
+## Обязательный UEFI для Raspberry Pi 5
+
+Для работы встроенного Ethernet необходим изменённый UEFI Raspberry Pi 5,
+который предоставляет контроллер RP1 Cadence GEM системе ESXi как ACPI
+`RPI0001`. Скачать прошивку и прочитать инструкцию по её установке можно здесь:
+
+**[Soulveig/rpi5-uefi-soulveig-edition](https://github.com/Soulveig/rpi5-uefi-soulveig-edition)**
+
+Штатная конфигурация UEFI может не предоставлять устройство в форме, требуемой
+этим драйвером.
+
 Это нативный uplink-драйвер VMkernel, а не Linux-драйвер, USB-эмуляция или PCI
 passthrough. ESXi регистрирует интерфейс как физический uplink, обычно
 `vmnic128`.
@@ -76,6 +87,9 @@ passthrough. ESXi регистрирует интерфейс как физич�
 До окончания проверок оставьте USB-сетевую карту как management и аварийный
 интерфейс. Рекомендуется доступ к локальной консоли. Не устанавливайте VIB
 поверх старого вручную добавленного `rp1sys.v00`.
+
+Перед установкой драйвера установите изменённый UEFI из проекта
+[Soulveig/rpi5-uefi-soulveig-edition](https://github.com/Soulveig/rpi5-uefi-soulveig-edition).
 
 1. Выключите или перенесите ВМ и включите maintenance mode.
 2. Проверьте build ESXi 24449057 и убедитесь, что Secure Boot отключён.

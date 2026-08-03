@@ -19,6 +19,17 @@ Version **v0.206** is a boot-tested development checkpoint for:
 - BCM54213PE PHY;
 - 1 Gbit/s Ethernet and MTU up to 9000.
 
+## Required Raspberry Pi 5 UEFI
+
+The onboard Ethernet controller requires a modified Raspberry Pi 5 UEFI that
+exposes the RP1 Cadence GEM device to ESXi as ACPI `RPI0001`. Download the
+required firmware and follow its installation instructions here:
+
+**[Soulveig/rpi5-uefi-soulveig-edition](https://github.com/Soulveig/rpi5-uefi-soulveig-edition)**
+
+The stock UEFI configuration may not expose the device in the form required by
+this driver.
+
 This is a real native VMkernel uplink driver. It is not a Linux driver, USB
 emulation, or PCI passthrough device. ESXi exposes the interface as a physical
 uplink, normally `vmnic128`.
@@ -81,6 +92,10 @@ Use the latest GitHub Release:
 
 Keep a supported USB NIC configured as the management and recovery interface
 until all RP1 tests pass. Local console access is strongly recommended.
+
+Install the required modified UEFI from
+[Soulveig/rpi5-uefi-soulveig-edition](https://github.com/Soulveig/rpi5-uefi-soulveig-edition)
+before installing the driver.
 
 Do not install the VIB over an older manually injected `rp1sys.v00` tardisk.
 Use a clean ESXi installation or remove the old tardisk separately with a

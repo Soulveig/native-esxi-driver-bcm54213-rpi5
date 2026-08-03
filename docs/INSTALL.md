@@ -3,6 +3,9 @@
 ## Requirements
 
 - Raspberry Pi 5 and compatible UEFI ACPI tables with `RPI0001`.
+- Modified Raspberry Pi 5 UEFI from
+  [Soulveig/rpi5-uefi-soulveig-edition](https://github.com/Soulveig/rpi5-uefi-soulveig-edition),
+  required to expose the RP1 Cadence GEM controller to ESXi as ACPI `RPI0001`.
 - ESXi-Arm 8.0U3c build 24449057.
 - Secure Boot disabled.
 - USB Ethernet management/recovery path kept connected.
