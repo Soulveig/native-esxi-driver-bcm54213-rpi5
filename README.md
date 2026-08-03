@@ -1,6 +1,8 @@
+[English](README.md) | [Русский](README_RU.md) | [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases)
+
 # Native ESXi driver for BCM54213 (Raspberry Pi 5)
 
-Experimental native VMware ESXi-Arm VMkernel network driver for the onboard
+Native VMware ESXi-Arm VMkernel network driver for the onboard
 Raspberry Pi 5 Ethernet interface.
 
 > Technical clarification: BCM54213PE is the external Gigabit Ethernet PHY.
@@ -9,7 +11,7 @@ Raspberry Pi 5 Ethernet interface.
 
 ## Status
 
-Version **v0.206** is an experimental, boot-tested checkpoint for:
+Version **v0.206** is a boot-tested development checkpoint for:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -130,6 +132,4 @@ Follow [docs/TESTING.md](docs/TESTING.md) and report the exact Raspberry Pi UEFI
 version, ESXi build, MTU, traffic direction, duration, packet drops and relevant
 VMkernel log lines. Never experiment with registering shared IRQ 261.
 
-No open-source license has been granted yet. The source is published for
-evaluation and collaborative testing; redistribution or derivative use should
-wait until an explicit license is added.
+This project is distributed under the [MIT License](LICENSE).

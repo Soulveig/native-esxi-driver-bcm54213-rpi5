@@ -1,0 +1,116 @@
+[English](README.md) | [Русский](README_RU.md) | [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases)
+
+# Нативный драйвер ESXi для BCM54213 (Raspberry Pi 5)
+
+Нативный сетевой драйвер VMware ESXi-Arm VMkernel для встроенного Ethernet
+интерфейса Raspberry Pi 5.
+
+> BCM54213PE — внешний Gigabit Ethernet PHY. Сам драйвер управляет Cadence GEM
+> MAC в составе RP1 и взаимодействует с PHY через MDIO.
+
+## Статус и совместимость
+
+Версия **v0.206** проверена загрузкой на следующей конфигурации:
+
+- Raspberry Pi 5;
+- VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
+- UEFI, предоставляющий Ethernet RP1 как ACPI `RPI0001`;
+- PHY BCM54213PE;
+- Ethernet 1 Гбит/с и MTU до 9000.
+
+Это нативный uplink-драйвер VMkernel, а не Linux-драйвер, USB-эмуляция или PCI
+passthrough. ESXi регистрирует интерфейс как физический uplink, обычно
+`vmnic128`.
+
+Проект не связан с VMware, Broadcom или Raspberry Pi Foundation и не
+поддерживается ими. Не используйте драйвер в производственной среде.
+
+## Возможности
+
+- Нативный модуль ESXi VMkernel для ARM64.
+- Привязка через ACPI `RPI0001`.
+- Инициализация Cadence GEM MAC.
+- Обнаружение BCM54213PE, MDIO, автосогласование и состояние линка.
+- Регистрация физического uplink в VMkernel.
+- Передача и приём пакетов через сетевой стек VMkernel.
+- DMA-кольца дескрипторов и RX replacement buffers.
+- Обычный MTU и jumbo frames до MTU 9000.
+- Трафик самого ESXi и виртуальных машин.
+- Установка через VIB или offline bundle.
+- Восстановление после link down/up и диагностические счётчики.
+
+## Архитектура и ограничения
+
+- RX обслуживается polling world с интервалом 500 мкс.
+- Общий IRQ RP1 **261 намеренно не регистрируется**, поскольку он также
+  используется другими функциями RP1, включая USB-контроллеры.
+- В v0.206 используется RX-кольцо на 32 элемента и TX batch 8.
+- VIB не подписан и имеет уровень `CommunitySupported`.
+- Secure Boot должен быть отключён.
+- Установка и удаление требуют maintenance mode и перезагрузки.
+- Совместимость пока ограничена ESXi-Arm build 24449057.
+
+## Измеренная скорость
+
+| Тест | Результат |
+|---|---:|
+| TCP TX, MSS 1460 | 178 Мбит/с |
+| TCP RX, MSS 1460 | 221 Мбит/с |
+| Jumbo RX, 60 секунд | 852 Мбит/с в среднем |
+| Пиковый Jumbo RX | 922 Мбит/с |
+| ICMP jumbo payload 8972 | успешно |
+
+Путь с обычным MTU ещё требует оптимизации. Подробности приведены в
+[docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+
+## Загрузка
+
+Используйте последний раздел [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases):
+
+- `rp1gem-0.0.206-1-offline-bundle.zip` — рекомендуемый offline depot;
+- `rp1gem-0.0.206-1-community.vib` — отдельный VIB;
+- `SHA256SUMS` — контрольные суммы.
+
+## Установка
+
+До окончания проверок оставьте USB-сетевую карту как management и аварийный
+интерфейс. Рекомендуется доступ к локальной консоли. Не устанавливайте VIB
+поверх старого вручную добавленного `rp1sys.v00`.
+
+1. Выключите или перенесите ВМ и включите maintenance mode.
+2. Проверьте build ESXi 24449057 и убедитесь, что Secure Boot отключён.
+3. Загрузите offline bundle в datastore.
+4. Установите уровень acceptance:
+
+```sh
+esxcli software acceptance set --level CommunitySupported
+```
+
+5. Выполните dry-run:
+
+```sh
+esxcli software vib install \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  --dry-run --no-sig-check --maintenance-mode
+```
+
+6. Если dry-run завершился без ошибок, установите пакет и перезагрузите хост:
+
+```sh
+esxcli software vib install \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.206-1-offline-bundle.zip \
+  --no-sig-check --maintenance-mode --no-live-install
+sync
+reboot
+```
+
+Полная процедура проверки и отката: [docs/INSTALL.md](docs/INSTALL.md).
+
+## Исходный код и тестирование
+
+Исходник находится в [src/rp1gem_mmio.c](src/rp1gem_mmio.c). Для сборки нужна
+совместимая среда VMware/NDDK, а для упаковки — VMware `esximage` и payload
+vmtar. Следуйте [docs/TESTING.md](docs/TESTING.md) и никогда не регистрируйте
+общий IRQ 261.
+
+Проект распространяется по лицензии [MIT](LICENSE).

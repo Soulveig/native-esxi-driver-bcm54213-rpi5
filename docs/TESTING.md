@@ -1,6 +1,6 @@
 # Test matrix
 
-The driver is experimental. Test one dimension at a time and preserve a known
+The driver is under active development. Test one dimension at a time and preserve a known
 bootbank rollback.
 
 ## Minimum acceptance test

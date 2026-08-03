@@ -1,5 +1,5 @@
 /*
- * Experimental native VMkernel network driver for the Raspberry Pi 5 RP1
+ * Native VMkernel network driver for the Raspberry Pi 5 RP1
  * Cadence GEM controller, exposed by UEFI as ACPI RPI0001.
  *
  * The attached Ethernet PHY is a Broadcom BCM54213PE. RX is intentionally
