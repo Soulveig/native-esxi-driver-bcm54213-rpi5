@@ -21,6 +21,11 @@ Version **v0.211** is a boot-tested development checkpoint for:
 - BCM54213PE PHY;
 - 1 Gbit/s Ethernet and MTU up to 9000.
 
+![RP1_GEM adapter details in ESXi Host Client](docs/images/esxi-host-client-v0.211.png)
+
+ESXi Host Client correctly reports auto-negotiation and the supported
+1000/100/10 Mbit/s full-duplex modes with v0.211.
+
 ## Required Raspberry Pi 5 UEFI
 
 The onboard Ethernet controller requires a modified Raspberry Pi 5 UEFI that
@@ -173,6 +178,11 @@ This project is distributed under the [MIT License](LICENSE).
 - UEFI, предоставляющий Ethernet RP1 как ACPI `RPI0001`;
 - PHY BCM54213PE;
 - Ethernet 1 Гбит/с и MTU до 9000.
+
+![Параметры адаптера RP1_GEM в ESXi Host Client](docs/images/esxi-host-client-v0.211.png)
+
+В v0.211 ESXi Host Client корректно показывает автосогласование и режимы
+1000/100/10 Мбит/с Full Duplex.
 
 ### Обязательный UEFI для Raspberry Pi 5
 

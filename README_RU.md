@@ -18,6 +18,11 @@
 - PHY BCM54213PE;
 - Ethernet 1 Гбит/с и MTU до 9000.
 
+![Параметры адаптера RP1_GEM в ESXi Host Client](docs/images/esxi-host-client-v0.211.png)
+
+В v0.211 ESXi Host Client корректно показывает автосогласование и режимы
+1000/100/10 Мбит/с Full Duplex.
+
 ## Обязательный UEFI для Raspberry Pi 5
 
 Для работы встроенного Ethernet необходим изменённый UEFI Raspberry Pi 5,
