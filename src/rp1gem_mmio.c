@@ -2346,6 +2346,7 @@ rp1gem_uplink_start_io(void *adapter)
     vmk_Status mmio_status = 1;
     uint32_t mmio_ncr = 0;
     uint32_t ring_index;
+    uint32_t startup_wait_loops;
 
     _vmk_WarningMessage(
         "rp1gem_mmio: lifecycle StartIO adapter=%lx",
@@ -2565,6 +2566,32 @@ rp1gem_uplink_start_io(void *adapter)
     if (world_status != 0)
         return world_status;
 
+    /*
+     * World creation is asynchronous.  Do not publish Link Up until the
+     * polling world has programmed the RX ring and enabled RX DMA.  Without
+     * this handshake ESXi can start management traffic during the world's
+     * initial delay, leaving the boot-time RX path stalled until a manual
+     * administrative down/up recreates it.
+     */
+    for (startup_wait_loops = 0;
+         startup_wait_loops < 500U &&
+         rp1gem_world_running != 0U &&
+         rp1gem_world_rx_status == (vmk_Status)-1;
+         startup_wait_loops++)
+        vmk_DelayUsecs(10000U);
+    _vmk_WarningMessage(
+        "rp1gem_mmio: polling RX startup handshake loops=%u "
+        "worldRunning=%u rxStatus=%x netpollStatus=%x calls=%u",
+        startup_wait_loops, rp1gem_world_running,
+        rp1gem_world_rx_status, rp1gem_world_netpoll_status,
+        rp1gem_world_calls);
+    if (rp1gem_world_running == 0U ||
+        rp1gem_world_rx_status != 0) {
+        rp1gem_stop_poll_world();
+        return rp1gem_world_rx_status == (vmk_Status)-1 ?
+            (vmk_Status)1 : rp1gem_world_rx_status;
+    }
+
     status = vmk_UplinkUpdateLinkState(rp1gem_uplink_handle, &link);
     _vmk_WarningMessage(
         "rp1gem_mmio: uplink link-state update up=1 speed=1000 "
@@ -2682,7 +2709,7 @@ rp1gem_register_uplink_skeleton(vmk_Device parent)
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.driver_name,
                              "RP1_GEM");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.driver_version,
-                             "0.0.211");
+                             "0.0.213");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.firmware_version,
                              "NA");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.implementation,
@@ -4229,7 +4256,7 @@ static const char __vmk_nsRequiredInfo_str[] =
 
 __attribute__((section(".vmkmodinfo"), used, aligned(8)))
 static const char __vmk_versionInfo_str[] =
-    "version=0.0.211-1rp1gem.803.0.55.24449057";
+    "version=0.0.213-1rp1gem.803.0.55.24449057";
 
 __attribute__((section(".vmkmodinfo"), used, aligned(8)))
 static const char __vmk_buildTypeInfo_str[] = "buildType=release";

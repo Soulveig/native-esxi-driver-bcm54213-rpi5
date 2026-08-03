@@ -13,7 +13,7 @@ Raspberry Pi 5 Ethernet interface.
 
 ## Status
 
-Version **v0.211** is a boot-tested development checkpoint for:
+Version **v0.213** is a host-verified development checkpoint for:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -24,7 +24,8 @@ Version **v0.211** is a boot-tested development checkpoint for:
 ![RP1_GEM adapter details in ESXi Host Client](docs/images/esxi-host-client-v0.211.png)
 
 ESXi Host Client correctly reports auto-negotiation and the supported
-1000/100/10 Mbit/s full-duplex modes with v0.211.
+1000/100/10 Mbit/s full-duplex modes. The screenshot was captured on v0.211;
+these capabilities are unchanged in v0.213.
 
 ## Required Raspberry Pi 5 UEFI
 
@@ -63,10 +64,13 @@ Raspberry Pi Foundation. Do not use it on production systems.
 - RX uses a dedicated polling world at a 500 microsecond interval.
 - The shared RP1 interrupt **261 is intentionally never registered** because it
   is shared with other RP1 functions, including USB controllers.
-- v0.211 uses a 32-entry RX ring and TX batch size 8.
-- On the validation host, the first boot required one `vmnic128` down/up cycle
-  to rearm RX. Keep USB management available until this lifecycle issue is
-  resolved.
+- v0.213 uses a 32-entry RX ring and TX batch size 8.
+- v0.213 waits for the polling world to finish RX ring/DMA initialization
+  before publishing Link Up. Two clean validation reboots brought RP1
+  management online without a manual `vmnic128` down/up cycle.
+- Wake-on-LAN is not advertised. RP1 contains a magic-packet detector, but the
+  Raspberry Pi 5 platform does not provide the complete powered-off wake path
+  required to start BCM2712 from Ethernet.
 - The VIB is unsigned and has `CommunitySupported` acceptance.
 - Secure Boot must be disabled.
 - Installation/removal requires maintenance mode and reboot.
@@ -94,8 +98,8 @@ The slower standard-MTU path remains an area for optimization. See
 
 Use the latest GitHub Release:
 
-- `rp1gem-0.0.211-1-offline-bundle.zip` — recommended offline depot;
-- `rp1gem-0.0.211-1-community.vib` — standalone VIB;
+- `rp1gem-0.0.213-1-offline-bundle.zip` — recommended offline depot;
+- `rp1gem-0.0.213-1-community.vib` — standalone VIB;
 - `SHA256SUMS` — release checksums.
 
 ## Installation
@@ -124,7 +128,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -132,7 +136,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot
@@ -149,7 +153,7 @@ compatible VMware/NDDK-derived toolchain and packaging requires VMware's
 not redistributed here.
 
 The checked-in source comment was refreshed for publication, but the release
-VIB contains the exact host-tested v0.211 binary.
+VIB contains the exact host-tested v0.213 binary.
 
 ## Testing and contributions
 
@@ -171,7 +175,7 @@ This project is distributed under the [MIT License](LICENSE).
 
 ### Статус и совместимость
 
-Версия **v0.211** проверена загрузкой на следующей конфигурации:
+Версия **v0.213** проверена на хосте со следующей конфигурацией:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -181,8 +185,9 @@ This project is distributed under the [MIT License](LICENSE).
 
 ![Параметры адаптера RP1_GEM в ESXi Host Client](docs/images/esxi-host-client-v0.211.png)
 
-В v0.211 ESXi Host Client корректно показывает автосогласование и режимы
-1000/100/10 Мбит/с Full Duplex.
+ESXi Host Client корректно показывает автосогласование и режимы
+1000/100/10 Мбит/с Full Duplex. Снимок сделан на v0.211; в v0.213 эти
+возможности не изменялись.
 
 ### Обязательный UEFI для Raspberry Pi 5
 
@@ -221,10 +226,13 @@ passthrough. ESXi регистрирует интерфейс как физич�
 - RX обслуживается polling world с интервалом 500 мкс.
 - Общий IRQ RP1 **261 намеренно не регистрируется**, поскольку он также
   используется другими функциями RP1, включая USB-контроллеры.
-- В v0.211 используется RX-кольцо на 32 элемента и TX batch 8.
-- На тестовом хосте после первой загрузки потребовался один цикл
-  `vmnic128 down/up` для повторного запуска RX. До исправления lifecycle
-  сохраняйте management через USB.
+- В v0.213 используется RX-кольцо на 32 элемента и TX batch 8.
+- v0.213 ожидает завершения инициализации RX ring/DMA в polling world до
+  публикации Link Up. После двух чистых тестовых перезагрузок RP1 management
+  появился без ручного цикла `vmnic128 down/up`.
+- Wake-on-LAN не заявляется: в RP1 есть детектор magic packet, но платформа
+  Raspberry Pi 5 не предоставляет полный путь пробуждения BCM2712 по Ethernet
+  из выключенного состояния.
 - VIB не подписан и имеет уровень `CommunitySupported`.
 - Secure Boot должен быть отключён.
 - Установка и удаление требуют maintenance mode и перезагрузки.
@@ -248,8 +256,8 @@ passthrough. ESXi регистрирует интерфейс как физич�
 
 Используйте последний раздел [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases):
 
-- `rp1gem-0.0.211-1-offline-bundle.zip` — рекомендуемый offline depot;
-- `rp1gem-0.0.211-1-community.vib` — отдельный VIB;
+- `rp1gem-0.0.213-1-offline-bundle.zip` — рекомендуемый offline depot;
+- `rp1gem-0.0.213-1-community.vib` — отдельный VIB;
 - `SHA256SUMS` — контрольные суммы.
 
 ### Установка
@@ -274,7 +282,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -282,7 +290,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot

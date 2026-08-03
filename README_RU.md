@@ -10,7 +10,7 @@
 
 ## Статус и совместимость
 
-Версия **v0.211** проверена загрузкой на следующей конфигурации:
+Версия **v0.213** проверена на хосте со следующей конфигурацией:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -20,8 +20,9 @@
 
 ![Параметры адаптера RP1_GEM в ESXi Host Client](docs/images/esxi-host-client-v0.211.png)
 
-В v0.211 ESXi Host Client корректно показывает автосогласование и режимы
-1000/100/10 Мбит/с Full Duplex.
+ESXi Host Client корректно показывает автосогласование и режимы
+1000/100/10 Мбит/с Full Duplex. Снимок сделан на v0.211; в v0.213 эти
+возможности не изменялись.
 
 ## Обязательный UEFI для Raspberry Pi 5
 
@@ -60,10 +61,13 @@ passthrough. ESXi регистрирует интерфейс как физич�
 - RX обслуживается polling world с интервалом 500 мкс.
 - Общий IRQ RP1 **261 намеренно не регистрируется**, поскольку он также
   используется другими функциями RP1, включая USB-контроллеры.
-- В v0.211 используется RX-кольцо на 32 элемента и TX batch 8.
-- На тестовом хосте после первой загрузки потребовался один цикл
-  `vmnic128 down/up` для повторного запуска RX. До исправления lifecycle
-  сохраняйте management через USB.
+- В v0.213 используется RX-кольцо на 32 элемента и TX batch 8.
+- v0.213 ожидает завершения инициализации RX ring/DMA в polling world до
+  публикации Link Up. После двух чистых тестовых перезагрузок RP1 management
+  появился без ручного цикла `vmnic128 down/up`.
+- Wake-on-LAN не заявляется: в RP1 есть детектор magic packet, но платформа
+  Raspberry Pi 5 не предоставляет полный путь пробуждения BCM2712 по Ethernet
+  из выключенного состояния.
 - VIB не подписан и имеет уровень `CommunitySupported`.
 - Secure Boot должен быть отключён.
 - Установка и удаление требуют maintenance mode и перезагрузки.
@@ -86,8 +90,8 @@ passthrough. ESXi регистрирует интерфейс как физич�
 
 Используйте последний раздел [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases):
 
-- `rp1gem-0.0.211-1-offline-bundle.zip` — рекомендуемый offline depot;
-- `rp1gem-0.0.211-1-community.vib` — отдельный VIB;
+- `rp1gem-0.0.213-1-offline-bundle.zip` — рекомендуемый offline depot;
+- `rp1gem-0.0.213-1-community.vib` — отдельный VIB;
 - `SHA256SUMS` — контрольные суммы.
 
 ## Установка
@@ -112,7 +116,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -120,7 +124,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.211-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot
