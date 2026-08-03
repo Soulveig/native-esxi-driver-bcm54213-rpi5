@@ -21,7 +21,7 @@ bootbank rollback.
 - One and multiple TCP streams.
 - 60-second and longer sustained receive/transmit load.
 - VM power cycle and host reboot.
-- Verify RX immediately after reboot. v0.213 should bring RX online without a
+- Verify RX immediately after reboot. v0.214 should bring RX online without a
   manual `vmnic128` down/up cycle; preserve pre-rearm counters and logs if it
   does not.
 - Link cable removal/reconnection.

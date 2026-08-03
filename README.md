@@ -13,7 +13,7 @@ Raspberry Pi 5 Ethernet interface.
 
 ## Status
 
-Version **v0.213** is a host-verified development checkpoint for:
+Version **v0.214** is a host-verified development checkpoint for:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -25,7 +25,7 @@ Version **v0.213** is a host-verified development checkpoint for:
 
 ESXi Host Client correctly reports auto-negotiation and the supported
 1000/100/10 Mbit/s full-duplex modes. The screenshot was captured on v0.211;
-these capabilities are unchanged in v0.213.
+these capabilities are unchanged in v0.214.
 
 ## Required Raspberry Pi 5 UEFI
 
@@ -64,10 +64,12 @@ Raspberry Pi Foundation. Do not use it on production systems.
 - RX uses a dedicated polling world at a 500 microsecond interval.
 - The shared RP1 interrupt **261 is intentionally never registered** because it
   is shared with other RP1 functions, including USB controllers.
-- v0.213 uses a 32-entry RX ring and TX batch size 8.
-- v0.213 waits for the polling world to finish RX ring/DMA initialization
+- v0.214 uses a 32-entry RX ring and TX batch size 8.
+- v0.214 waits for the polling world to finish RX ring/DMA initialization
   before publishing Link Up. Two clean validation reboots brought RP1
   management online without a manual `vmnic128` down/up cycle.
+- v0.214 replaces the terminal TX-watchdog state with a recoverable Cadence
+  GEM queue reset, so a stuck batch no longer permanently disables TX.
 - Wake-on-LAN is not advertised. RP1 contains a magic-packet detector, but the
   Raspberry Pi 5 platform does not provide the complete powered-off wake path
   required to start BCM2712 from Ethernet.
@@ -75,8 +77,7 @@ Raspberry Pi Foundation. Do not use it on production systems.
 - Secure Boot must be disabled.
 - Installation/removal requires maintenance mode and reboot.
 - Compatibility is currently restricted to ESXi-Arm build 24449057.
-- Long-duration reliability and behavior on other firmware/build combinations
-  are not yet established.
+- Reliability on other firmware/build combinations is not yet established.
 
 ## Measured performance
 
@@ -85,21 +86,25 @@ with a wired external peer. They are checkpoints, not guarantees:
 
 | Test | Result |
 |---|---:|
-| TCP TX, MSS 1460 | 179 Mbit/s |
-| TCP RX, MSS 1460 | 263 Mbit/s |
-| Jumbo TX | 332 Mbit/s |
-| Jumbo RX | 721 Mbit/s |
+| TCP TX, jumbo MTU, 83.9 s | 257 Mbit/s |
+| TCP RX, jumbo MTU, 600 s | 873 Mbit/s |
+| TCP TX after `vmnic128` down/up | 343 Mbit/s |
+| TCP RX after `vmnic128` down/up | 852 Mbit/s |
+| Bidirectional TX, 600 s | 361 Mbit/s |
+| Bidirectional RX, 600 s | 64.6 Mbit/s |
 | Jumbo ICMP payload 8972 | passed |
 
-The slower standard-MTU path remains an area for optimization. See
+The bidirectional figures are lower because both directions compete in the
+current polling and queue implementation. All 600-second tests completed with
+zero driver RX/TX drops and errors. See
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for scope and interpretation.
 
 ## Download
 
 Use the latest GitHub Release:
 
-- `rp1gem-0.0.213-1-offline-bundle.zip` — recommended offline depot;
-- `rp1gem-0.0.213-1-community.vib` — standalone VIB;
+- `rp1gem-0.0.214-1-offline-bundle.zip` — recommended offline depot;
+- `rp1gem-0.0.214-1-community.vib` — standalone VIB;
 - `SHA256SUMS` — release checksums.
 
 ## Installation
@@ -128,7 +133,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.214-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -136,7 +141,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.214-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot
@@ -153,7 +158,7 @@ compatible VMware/NDDK-derived toolchain and packaging requires VMware's
 not redistributed here.
 
 The checked-in source comment was refreshed for publication, but the release
-VIB contains the exact host-tested v0.213 binary.
+VIB contains the exact host-tested v0.214 binary.
 
 ## Testing and contributions
 
@@ -175,7 +180,7 @@ This project is distributed under the [MIT License](LICENSE).
 
 ### Статус и совместимость
 
-Версия **v0.213** проверена на хосте со следующей конфигурацией:
+Версия **v0.214** проверена на хосте со следующей конфигурацией:
 
 - Raspberry Pi 5;
 - VMware ESXi-Arm 8.0U3c build 24449057 (`aarch64`);
@@ -186,7 +191,7 @@ This project is distributed under the [MIT License](LICENSE).
 ![Параметры адаптера RP1_GEM в ESXi Host Client](docs/images/esxi-host-client-v0.211.png)
 
 ESXi Host Client корректно показывает автосогласование и режимы
-1000/100/10 Мбит/с Full Duplex. Снимок сделан на v0.211; в v0.213 эти
+1000/100/10 Мбит/с Full Duplex. Снимок сделан на v0.211; в v0.214 эти
 возможности не изменялись.
 
 ### Обязательный UEFI для Raspberry Pi 5
@@ -226,10 +231,12 @@ passthrough. ESXi регистрирует интерфейс как физич�
 - RX обслуживается polling world с интервалом 500 мкс.
 - Общий IRQ RP1 **261 намеренно не регистрируется**, поскольку он также
   используется другими функциями RP1, включая USB-контроллеры.
-- В v0.213 используется RX-кольцо на 32 элемента и TX batch 8.
-- v0.213 ожидает завершения инициализации RX ring/DMA в polling world до
+- В v0.214 используется RX-кольцо на 32 элемента и TX batch 8.
+- v0.214 ожидает завершения инициализации RX ring/DMA в polling world до
   публикации Link Up. После двух чистых тестовых перезагрузок RP1 management
   появился без ручного цикла `vmnic128 down/up`.
+- v0.214 заменяет терминальное состояние TX watchdog на восстанавливаемый
+  сброс очереди Cadence GEM, чтобы зависшая пачка не отключала TX навсегда.
 - Wake-on-LAN не заявляется: в RP1 есть детектор magic packet, но платформа
   Raspberry Pi 5 не предоставляет полный путь пробуждения BCM2712 по Ethernet
   из выключенного состояния.
@@ -243,21 +250,25 @@ passthrough. ESXi регистрирует интерфейс как физич�
 
 | Тест | Результат |
 |---|---:|
-| TCP TX, MSS 1460 | 179 Мбит/с |
-| TCP RX, MSS 1460 | 263 Мбит/с |
-| Jumbo TX | 332 Мбит/с |
-| Jumbo RX | 721 Мбит/с |
+| TCP TX, jumbo MTU, 83,9 с | 257 Мбит/с |
+| TCP RX, jumbo MTU, 600 с | 873 Мбит/с |
+| TCP TX после `vmnic128` down/up | 343 Мбит/с |
+| TCP RX после `vmnic128` down/up | 852 Мбит/с |
+| Двунаправленный TX, 600 с | 361 Мбит/с |
+| Двунаправленный RX, 600 с | 64,6 Мбит/с |
 | ICMP jumbo payload 8972 | успешно |
 
-Путь с обычным MTU ещё требует оптимизации. Подробности приведены в
+При двунаправленной нагрузке оба направления конкурируют в текущей реализации
+polling и очередей. Все 600-секундные тесты завершились с нулевыми RX/TX drops
+и errors драйвера. Подробности приведены в
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ### Загрузка
 
 Используйте последний раздел [Releases](https://github.com/Soulveig/native-esxi-driver-bcm54213-rpi5/releases):
 
-- `rp1gem-0.0.213-1-offline-bundle.zip` — рекомендуемый offline depot;
-- `rp1gem-0.0.213-1-community.vib` — отдельный VIB;
+- `rp1gem-0.0.214-1-offline-bundle.zip` — рекомендуемый offline depot;
+- `rp1gem-0.0.214-1-community.vib` — отдельный VIB;
 - `SHA256SUMS` — контрольные суммы.
 
 ### Установка
@@ -282,7 +293,7 @@ esxcli software acceptance set --level CommunitySupported
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.214-1-offline-bundle.zip \
   --dry-run --no-sig-check --maintenance-mode
 ```
 
@@ -290,7 +301,7 @@ esxcli software vib install \
 
 ```sh
 esxcli software vib install \
-  -d /vmfs/volumes/datastore1/rp1gem-0.0.213-1-offline-bundle.zip \
+  -d /vmfs/volumes/datastore1/rp1gem-0.0.214-1-offline-bundle.zip \
   --no-sig-check --maintenance-mode --no-live-install
 sync
 reboot

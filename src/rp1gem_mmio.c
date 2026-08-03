@@ -175,6 +175,7 @@ static vmk_ACPIDevice rp1gem_gem_acpi_device;
 static uint32_t rp1gem_gem_resource_mapped;
 static void *rp1gem_rx_ring;
 static void *rp1gem_tx_ring;
+static uint64_t rp1gem_tx_ring_ma;
 static uint64_t rp1gem_rx_ring_ma;
 static uint32_t rp1gem_saved_ncr;
 static uint32_t rp1gem_saved_ncfgr;
@@ -725,13 +726,40 @@ rp1gem_poll_world_probe(void *data)
                     rp1gem_tx_sw_head = 0;
                     rp1gem_tx_sw_tail = 0;
                     rp1gem_tx_sw_lock_release();
+                    /*
+                     * Match the Cadence macb TX error recovery sequence:
+                     * halt TX, rebuild the descriptor queue, republish its
+                     * base, clear latched TX status, then accept traffic
+                     * again.  The stuck batch and queued copies are dropped;
+                     * upper-layer retransmission is safer than leaving the
+                     * uplink permanently unable to send ACK or ARP traffic.
+                     */
+                    if (rp1gem_tx_ring_ma != 0) {
+                        uint32_t watchdog_tsr = 0;
+
+                        (void)vmk_MappedResourceWrite32(
+                            rp1gem_gem_resource, 0x01c,
+                            (uint32_t)rp1gem_tx_ring_ma);
+                        (void)vmk_MappedResourceWrite32(
+                            rp1gem_gem_resource, 0x04c8,
+                            (uint32_t)(rp1gem_tx_ring_ma >> 32));
+                        if (vmk_MappedResourceRead32(
+                                rp1gem_gem_resource, 0x014,
+                                &watchdog_tsr) == 0)
+                            (void)vmk_MappedResourceWrite32(
+                                rp1gem_gem_resource, 0x014,
+                                watchdog_tsr);
+                    }
+                    rp1gem_tx_poll_age = 0;
                     rp1gem_tx_watchdog_fired++;
-                    rp1gem_tx_state_store(3);
+                    rp1gem_tx_state_store(0);
                     _vmk_WarningMessage(
-                        "rp1gem_mmio: TX watchdog fired "
-                        "age=%u ctrl=%08x dropped=%u",
-                        rp1gem_tx_poll_age, tx_ctrl,
-                        rp1gem_tx_sw_dropped);
+                        "rp1gem_mmio: TX watchdog recovered "
+                        "ctrl=%08x dropped=%u recoveries=%u",
+                        tx_ctrl,
+                        rp1gem_tx_sw_dropped,
+                        rp1gem_tx_watchdog_fired);
+                    rp1gem_tx_kick();
                 }
             }
         }
@@ -2709,7 +2737,7 @@ rp1gem_register_uplink_skeleton(vmk_Device parent)
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.driver_name,
                              "RP1_GEM");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.driver_version,
-                             "0.0.213");
+                             "0.0.214");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.firmware_version,
                              "NA");
     (void)vmk_NameInitialize(rp1gem_uplink_shared_data.implementation,
@@ -3418,6 +3446,7 @@ rp1gem_attach(vmk_Device device)
         rx_ring_ma = memory_map_ma;
         rp1gem_rx_ring_ma = rx_ring_ma;
         tx_ring_ma = memory_map_ma + 2048;
+        rp1gem_tx_ring_ma = tx_ring_ma;
         rx_ring_status = 0;
         tx_ring_status = 0;
     } else {
@@ -4256,7 +4285,7 @@ static const char __vmk_nsRequiredInfo_str[] =
 
 __attribute__((section(".vmkmodinfo"), used, aligned(8)))
 static const char __vmk_versionInfo_str[] =
-    "version=0.0.213-1rp1gem.803.0.55.24449057";
+    "version=0.0.214-1rp1gem.803.0.55.24449057";
 
 __attribute__((section(".vmkmodinfo"), used, aligned(8)))
 static const char __vmk_buildTypeInfo_str[] = "buildType=release";

@@ -1,16 +1,25 @@
 # Performance checkpoint
 
-## v0.213 results
+## v0.214 results
 
 Tests used a Raspberry Pi 5 running ESXi-Arm 8.0U3c build 24449057 and a wired
 external peer on the same LAN.
 
 | Path and traffic profile | Observed result |
 |---|---:|
-| VM TCP transmit, MSS 1460, 5 seconds | 179 Mbit/s |
-| VM TCP receive, MSS 1460, 5 seconds | 263 Mbit/s |
-| VM TCP transmit with jumbo frames, 5 seconds | 332 Mbit/s |
-| VM TCP receive with jumbo frames, 5 seconds | 721 Mbit/s |
+| VM TCP transmit, jumbo MTU, 83.9 seconds | 257 Mbit/s, 1 retransmit |
+| VM TCP receive, jumbo MTU, 600 seconds | 873 Mbit/s, 61.0 GB |
+| VM TCP transmit after `vmnic128` down/up, 10 seconds | 343 Mbit/s |
+| VM TCP receive after `vmnic128` down/up, 10 seconds | 852 Mbit/s |
+| Bidirectional transmit, jumbo MTU, 600 seconds | 361 Mbit/s |
+| Bidirectional receive, jumbo MTU, 600 seconds | 64.6 Mbit/s |
+
+The 600-second receive and bidirectional tests completed without loss of VM or
+management connectivity. Driver RX/TX drops and errors remained zero. The
+administrative `vmnic128` down/up cycle also restored traffic without a host
+reboot. Bidirectional results are listed separately because the current
+polling and queue implementation makes the two directions compete for
+processing capacity; they are not comparable to the one-direction figures.
 
 Standard-MTU performance is substantially lower than line rate, while the
 jumbo receive path demonstrates that the MAC, PHY and underlying DMA path can
@@ -32,5 +41,5 @@ Include all of the following:
 - whether management used RP1 or USB;
 - relevant `vmkernel.log` lines.
 
-Run single-stream tests first, followed by parallel streams and a 60-second
-stability pass. Keep USB management available throughout.
+Run single-stream tests first, followed by bidirectional traffic and at least a
+600-second stability pass. Keep USB management available throughout.
